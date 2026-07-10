@@ -2069,13 +2069,93 @@ function runTotalBal() {
     document.getElementById('calcNetTotal').value = Math.round((gross + prev) - cash);
 }
 
+// =======================================================================
+// RESET SYSTEM - FIXED (With Error Handling)
+// =======================================================================
 function resetSystem(generateNewId) {
-    // ✅ Clear items - IMPORTANT
+    // Clear items
     activeInvoiceItems = [];
     const tbody = document.querySelector('#invoiceTable tbody');
     if (tbody) tbody.innerHTML = '';
     
-    // ... baqi code waisa hi ...
+    // Set dates
+    const today = new Date();
+    const yyyy = today.getFullYear();
+    const mm = String(today.getMonth() + 1).padStart(2, '0');
+    const dd = String(today.getDate()).padStart(2, '0');
+    const formattedDate = `${yyyy}-${mm}-${dd}`;
+    
+    if(document.getElementById('invDate')) document.getElementById('invDate').value = formattedDate;
+    if(document.getElementById('refDate')) document.getElementById('refDate').value = formattedDate;
+    
+    // Reset customer fields
+    if(document.getElementById('custTitle')) document.getElementById('custTitle').value = '';
+    if(document.getElementById('custType')) document.getElementById('custType').value = 'TILE MART';
+    if(document.getElementById('custCode')) document.getElementById('custCode').value = '030603010004';
+    
+    // Reset calculation fields
+    if(document.getElementById('calcGross')) document.getElementById('calcGross').value = 0;
+    if(document.getElementById('calcPrev')) document.getElementById('calcPrev').value = 0;
+    if(document.getElementById('calcCashRec')) document.getElementById('calcCashRec').value = 0;
+    if(document.getElementById('calcNetTotal')) document.getElementById('calcNetTotal').value = 0;
+    if(document.getElementById('totalBoxesCount')) document.getElementById('totalBoxesCount').value = 0;
+    if(document.getElementById('totalPiecesCount')) document.getElementById('totalPiecesCount').value = 0;
+
+    // Reset stock display
+    const stockDisplay = document.getElementById('stockDisplay');
+    if (stockDisplay) {
+        stockDisplay.innerHTML = '<span class="placeholder-text">Select a product to see stock</span>';
+        stockDisplay.style.borderColor = '#2980b9';
+    }
+
+    // ✅ SMART INVOICE NUMBER GENERATION - FIXED
+    if (generateNewId && document.getElementById('invNo')) {
+        const invNoField = document.getElementById('invNo');
+        
+        // ✅ Check if database is available
+        if (!localDatabase) {
+            console.warn('⚠️ Database not available, using fallback');
+            invNoField.value = "1001";
+            updateWindowTitle();
+            lockInvoiceNumberField();
+            focusNextFieldAfterNew();
+            return;
+        }
+
+        try {
+            const tx = localDatabase.transaction("sales_history", "readonly");
+            const store = tx.objectStore("sales_history");
+            const getAllReq = store.getAllKeys();
+
+            getAllReq.onsuccess = function() {
+                const allIds = getAllReq.result.map(id => parseInt(id)).filter(id => !isNaN(id));
+                let nextInvoiceId = findSmallestMissingNumber(allIds);
+                invNoField.value = nextInvoiceId;
+                updateWindowTitle();
+                lockInvoiceNumberField();
+                focusNextFieldAfterNew();
+                console.log('✅ New invoice # generated:', nextInvoiceId);
+            };
+            
+            getAllReq.onerror = function() {
+                console.error('❌ Error getting invoice keys, using fallback');
+                invNoField.value = "1001";
+                updateWindowTitle();
+                lockInvoiceNumberField();
+                focusNextFieldAfterNew();
+            };
+        } catch(e) {
+            console.error('❌ Transaction error, using fallback:', e);
+            invNoField.value = "1001";
+            updateWindowTitle();
+            lockInvoiceNumberField();
+            focusNextFieldAfterNew();
+        }
+    } else if (!generateNewId && document.getElementById('invNo')) {
+        document.getElementById('invNo').value = '';
+        updateWindowTitle();
+        unlockInvoiceNumberField();
+    }
 }
 
 // =======================================================================
