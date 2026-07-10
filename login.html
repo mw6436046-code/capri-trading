@@ -1,0 +1,345 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Capri Trading - Login</title>
+    <style>
+        /* ======================================================= */
+        /* LOGIN PAGE STYLES */
+        /* ======================================================= */
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        
+        body {
+            font-family: Arial, Helvetica, sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin: 0;
+            padding: 20px;
+        }
+        
+        .login-container {
+            background: rgba(255,255,255,0.95);
+            border-radius: 16px;
+            padding: 40px 35px;
+            width: 100%;
+            max-width: 420px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+        }
+        
+        .login-logo { text-align: center; margin-bottom: 30px; }
+        .login-logo h1 { font-size: 28px; color: #1a1a2e; }
+        .login-logo h1 span { color: #2980b9; }
+        .login-logo p { color: #7f8c8d; font-size: 13px; margin-top: 5px; }
+        
+        .form-group { margin-bottom: 20px; }
+        .form-group label { display: block; font-weight: bold; color: #2c3e50; font-size: 13px; margin-bottom: 6px; }
+        .form-group input {
+            width: 100%;
+            padding: 12px 15px;
+            border: 2px solid #d5dbdb;
+            border-radius: 8px;
+            font-size: 14px;
+            transition: all 0.3s;
+            background: #f8f9fa;
+        }
+        .form-group input:focus {
+            border-color: #2980b9;
+            outline: none;
+            background: white;
+            box-shadow: 0 0 0 3px rgba(41, 128, 185, 0.2);
+        }
+        .form-group input.error { border-color: #e74c3c; box-shadow: 0 0 0 3px rgba(231, 76, 60, 0.2); }
+        
+        /* ✅ Datalist dropdown style */
+        input::-webkit-calendar-picker-indicator {
+            cursor: pointer;
+            opacity: 0.6;
+        }
+        input::-webkit-calendar-picker-indicator:hover {
+            opacity: 1;
+        }
+        
+        .password-wrapper { position: relative; }
+        .toggle-password {
+            position: absolute;
+            right: 12px;
+            top: 50%;
+            transform: translateY(-50%);
+            cursor: pointer;
+            color: #95a5a6;
+            font-size: 16px;
+            background: none;
+            border: none;
+        }
+        .toggle-password:hover { color: #2c3e50; }
+        
+        .remember-me {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 20px;
+        }
+        .remember-me input[type="checkbox"] { width: 18px; height: 18px; cursor: pointer; }
+        .remember-me label { font-size: 13px; color: #555; cursor: pointer; }
+        
+        .login-btn {
+            width: 100%;
+            padding: 14px;
+            background: linear-gradient(135deg, #2980b9, #1a5276);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s;
+            letter-spacing: 1px;
+        }
+        .login-btn:hover { transform: translateY(-2px); box-shadow: 0 8px 25px rgba(41, 128, 185, 0.4); }
+        .login-btn:active { transform: translateY(0); }
+        .login-btn:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
+        
+        .error-message {
+            background: #fdedec;
+            color: #e74c3c;
+            padding: 10px 14px;
+            border-radius: 8px;
+            font-size: 12px;
+            margin-bottom: 15px;
+            display: none;
+            border-left: 4px solid #e74c3c;
+        }
+        .error-message.show { display: block; }
+        
+        .login-footer { display: none; }
+        
+        .spinner {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid rgba(255,255,255,0.3);
+            border-radius: 50%;
+            border-top-color: white;
+            animation: spin 0.8s ease-in-out infinite;
+            vertical-align: middle;
+            margin-right: 8px;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        
+        @media (max-width: 480px) {
+            .login-container { padding: 25px 20px; }
+            .login-logo h1 { font-size: 22px; }
+        }
+    </style>
+</head>
+<body>
+    <div class="login-container">
+        <div class="login-logo">
+            <h1>🏪 Capri <span>Trading</span></h1>
+            <p>Login to your account</p>
+        </div>
+        
+        <!-- Error Message -->
+        <div id="loginError" class="error-message">⚠️ Invalid username or password!</div>
+        
+        <!-- Login Form -->
+        <form id="loginForm" autocomplete="off">
+            <div class="form-group">
+                <label for="username">👤 Username</label>
+                <!-- ✅ Input with datalist for dynamic dropdown -->
+                <input type="text" id="username" list="usernameList" placeholder="Enter or select username" required autofocus>
+                <datalist id="usernameList">
+                    <!-- Dynamic options yahan aayengi -->
+                </datalist>
+            </div>
+            
+            <div class="form-group">
+                <label for="password">🔒 Password</label>
+                <div class="password-wrapper">
+                    <input type="password" id="password" placeholder="Enter password" required autocomplete="new-password">
+                    <button type="button" class="toggle-password" onclick="togglePassword()">👁️</button>
+                </div>
+            </div>
+            
+            <div class="remember-me">
+                <input type="checkbox" id="rememberMe">
+                <label for="rememberMe">Remember me</label>
+            </div>
+            
+            <button type="submit" class="login-btn" id="loginBtn">🔐 Login</button>
+        </form>
+        
+        <div class="login-footer">
+            <p>Admin: admin / admin123 | User: user / user123</p>
+        </div>
+    </div>
+
+    <script>
+        // ======================================================= //
+        // LOGIN SCRIPT                                           //
+        // ======================================================= //
+        
+        const DEFAULT_USERS = [
+            { username: 'admin', password: 'admin123', role: 'admin', name: 'Administrator' },
+            { username: 'user', password: 'user123', role: 'user', name: 'User' }
+        ];
+        
+        if (!localStorage.getItem('capri_users')) {
+            localStorage.setItem('capri_users', JSON.stringify(DEFAULT_USERS));
+        }
+        
+        function getUsers() {
+            try {
+                return JSON.parse(localStorage.getItem('capri_users')) || DEFAULT_USERS;
+            } catch(e) {
+                return DEFAULT_USERS;
+            }
+        }
+        
+        // ======================================================= //
+        // DYNAMIC USERNAME DROPDOWN                              //
+        // ======================================================= //
+        
+        // ✅ Get saved usernames from localStorage
+        function getSavedUsernames() {
+            try {
+                const users = JSON.parse(localStorage.getItem('capri_users')) || [];
+                return users.map(user => user.username);
+            } catch(e) {
+                return [];
+            }
+        }
+        
+        // ✅ Populate datalist with saved usernames
+        function populateUsernameDropdown() {
+            const datalist = document.getElementById('usernameList');
+            if (!datalist) return;
+            
+            // ✅ Clear existing options
+            datalist.innerHTML = '';
+            
+            // ✅ Get saved usernames
+            const usernames = getSavedUsernames();
+            
+            // ✅ Add each username as option
+            usernames.forEach(username => {
+                const option = document.createElement('option');
+                option.value = username;
+                datalist.appendChild(option);
+            });
+            
+            console.log('✅ Username dropdown populated with:', usernames.length, 'usernames');
+        }
+        
+        // ✅ Save new username to history
+        function saveUsernameToHistory(username) {
+            if (!username) return;
+            
+            try {
+                let users = JSON.parse(localStorage.getItem('capri_users')) || [];
+                // ✅ Check if username already exists
+                const exists = users.some(u => u.username === username);
+                if (!exists) {
+                    // ✅ Add new user with default password
+                    users.push({
+                        username: username,
+                        password: 'changeme123',
+                        role: 'user',
+                        name: username
+                    });
+                    localStorage.setItem('capri_users', JSON.stringify(users));
+                    console.log('✅ New username saved to history:', username);
+                }
+            } catch(e) {
+                console.error('Error saving username:', e);
+            }
+        }
+        
+        // ✅ Populate dropdown on page load
+        window.addEventListener('DOMContentLoaded', function() {
+            populateUsernameDropdown();
+        });
+        
+        function togglePassword() {
+            const passwordInput = document.getElementById('password');
+            const toggleBtn = document.querySelector('.toggle-password');
+            if (passwordInput.type === 'password') {
+                passwordInput.type = 'text';
+                toggleBtn.textContent = '🙈';
+            } else {
+                passwordInput.type = 'password';
+                toggleBtn.textContent = '👁️';
+            }
+        }
+        
+        document.getElementById('loginForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const username = document.getElementById('username').value.trim();
+            const password = document.getElementById('password').value.trim();
+            const rememberMe = document.getElementById('rememberMe').checked;
+            const errorDiv = document.getElementById('loginError');
+            const loginBtn = document.getElementById('loginBtn');
+            
+            errorDiv.classList.remove('show');
+            
+            if (!username || !password) {
+                errorDiv.textContent = '⚠️ Please enter both username and password!';
+                errorDiv.classList.add('show');
+                return;
+            }
+            
+            loginBtn.disabled = true;
+            loginBtn.innerHTML = '<span class="spinner"></span> Logging in...';
+            
+            setTimeout(function() {
+                const users = getUsers();
+                const user = users.find(u => 
+                    u.username.toLowerCase() === username.toLowerCase() && 
+                    u.password === password
+                );
+                
+                if (user) {
+                    // ✅ Save username to history (if new)
+                    saveUsernameToHistory(username);
+                    
+                    const userData = {
+                        username: user.username,
+                        name: user.name,
+                        role: user.role,
+                        loginTime: new Date().toISOString()
+                    };
+                    
+                    localStorage.setItem('capri_user', JSON.stringify(userData));
+                    if (rememberMe) localStorage.setItem('capri_remember', 'true');
+                    else localStorage.removeItem('capri_remember');
+                    
+                    window.location.href = 'index.html';
+                } else {
+                    errorDiv.textContent = '⚠️ Invalid username or password! Please try again.';
+                    errorDiv.classList.add('show');
+                    loginBtn.disabled = false;
+                    loginBtn.innerHTML = '🔐 Login';
+                    document.getElementById('username').classList.add('error');
+                    document.getElementById('password').classList.add('error');
+                    setTimeout(function() {
+                        document.getElementById('username').classList.remove('error');
+                        document.getElementById('password').classList.remove('error');
+                    }, 3000);
+                }
+            }, 800);
+        });
+        
+        window.addEventListener('load', function() {
+            const savedUser = localStorage.getItem('capri_user');
+            if (savedUser) {
+                window.location.href = 'index.html';
+            }
+        });
+    </script>
+</body>
+</html>

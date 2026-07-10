@@ -1,0 +1,1599 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Capri Trading - Sales Invoice</title>
+    
+    <!-- ======================================================= -->
+    <!-- LOGIN CHECK - REDIRECT TO LOGIN IF NOT LOGGED IN       -->
+    <!-- ======================================================= -->
+    <script>
+        (function() {
+            const userData = localStorage.getItem('capri_user');
+            if (!userData) {
+                window.location.href = 'login.html';
+                return;
+            }
+            try {
+                const user = JSON.parse(userData);
+                // Session timeout: 30 minutes
+                const loginTime = new Date(user.loginTime);
+                const now = new Date();
+                const diffMinutes = (now - loginTime) / (1000 * 60);
+                if (diffMinutes > 30) {
+                    localStorage.removeItem('capri_user');
+                    localStorage.removeItem('capri_remember');
+                    window.location.href = 'login.html';
+                    return;
+                }
+                window.currentUser = user;
+            } catch(e) {
+                localStorage.removeItem('capri_user');
+                window.location.href = 'login.html';
+            }
+        })();
+    </script>
+    
+    <style>
+        /* ======================================================= */
+        /* RESPONSIVE - SCREEN SIZE ADJUST */
+        /* ======================================================= */
+        
+        /* Base Styles */
+        * {
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: Arial, Helvetica, sans-serif;
+            background-color: #cbd5e1;
+            margin: 0;
+            padding: 4px;
+            font-size: 12px;
+            color: #000;
+            transition: background-color 0.3s, color 0.3s;
+            overflow-x: hidden;
+            min-height: 100vh;
+        }
+        
+        /* Main Container */
+        .main-window {
+            background-color: #f4f6f9;
+            margin: 6px;
+            border: 1px solid #95a5a6;
+            padding: 8px;
+            min-height: auto;
+            width: auto;
+            max-width: 100%;
+            box-sizing: border-box;
+            overflow-x: hidden;
+        }
+        
+        /* ======================================================= */
+        /* INVOICE SEARCH - HIGHLIGHT COLORS */
+        /* ======================================================= */
+        #invoiceSearchTable tr.active {
+            background-color: #2980b9 !important;
+            color: white !important;
+        }
+        #invoiceSearchTable tr.active td {
+            background-color: #2980b9 !important;
+            color: white !important;
+            font-weight: bold;
+        }
+        #invoiceSearchTable tr:hover {
+            background-color: #3498db !important;
+            cursor: pointer;
+        }
+        #invoiceSearchTable tr:hover td {
+            background-color: #3498db !important;
+            color: white !important;
+        }
+        
+        /* Dark Mode Support */
+        body.dark-mode #invoiceSearchTable tr.active {
+            background-color: #3498db !important;
+            color: white !important;
+        }
+        body.dark-mode #invoiceSearchTable tr.active td {
+            background-color: #3498db !important;
+            color: white !important;
+        }
+        body.dark-mode #invoiceSearchTable tr:hover {
+            background-color: #2a5f8f !important;
+        }
+        body.dark-mode #invoiceSearchTable tr:hover td {
+            background-color: #2a5f8f !important;
+            color: white !important;
+        }
+        
+        /* Customer Search Modal - Dark Mode */
+        body.dark-mode #customerSearchModal .modal-content {
+            background-color: #16213e !important;
+            border-color: #2a3f54 !important;
+        }
+        body.dark-mode #customerSearchModal input {
+            background-color: #2a3f54 !important;
+            color: #e0e0e0 !important;
+            border-color: #4a5f74 !important;
+        }
+        body.dark-mode #customerSearchModal .modal-content h3 {
+            color: #e0e0e0 !important;
+        }
+        body.dark-mode #customerSearchModal .search-item {
+            color: #e0e0e0 !important;
+            border-color: #2a3f54 !important;
+        }
+        body.dark-mode #customerSearchModal .search-item:hover {
+            background-color: #2a3f54 !important;
+            color: white !important;
+        }
+        body.dark-mode #customerSearchModal .search-item.active {
+            background-color: #3498db !important;
+            color: white !important;
+        }
+        
+        /* Dark Mode Styles */
+        body.dark-mode {
+            background-color: #1a1a2e;
+            color: #e0e0e0;
+        }
+        body.dark-mode .top-nav {
+            background-color: #16213e;
+        }
+        body.dark-mode .top-nav select {
+            background-color: #16213e !important;
+            color: #e0e0e0 !important;
+        }
+        body.dark-mode .top-nav select option {
+            background-color: #16213e !important;
+            color: #e0e0e0 !important;
+        }
+        body.dark-mode .main-window {
+            background-color: #16213e;
+            border-color: #2a3f54;
+        }
+        body.dark-mode .invoice-meta-grid {
+            background-color: #1a1a2e;
+            border-color: #2a3f54;
+        }
+        body.dark-mode .meta-field input {
+            background-color: #2a3f54;
+            color: #e0e0e0;
+            border-color: #4a5f74;
+        }
+        body.dark-mode .item-input-row {
+            background-color: #1a1a2e;
+            border-color: #2a3f54;
+        }
+        body.dark-mode .item-input-row input {
+            background-color: #2a3f54;
+            color: #e0e0e0;
+            border-color: #4a5f74;
+        }
+        body.dark-mode .table-area {
+            background-color: #1a1a2e;
+            border-color: #2a3f54;
+        }
+        body.dark-mode td {
+            color: #e0e0e0;
+            border-color: #2a3f54;
+        }
+        body.dark-mode tr:nth-child(even) {
+            background-color: #1a1a2e;
+        }
+        body.dark-mode .right-calculations {
+            background-color: #1a1a2e;
+            border-color: #2a3f54;
+        }
+        body.dark-mode .right-calculations input {
+            background-color: #2a3f54;
+            color: #e0e0e0;
+            border-color: #4a5f74;
+        }
+        body.dark-mode .left-counts input {
+            background-color: #2a3f54;
+            color: #e0e0e0;
+            border-color: #4a5f74;
+        }
+        body.dark-mode .window-title {
+            color: #e0e0e0;
+            border-color: #2a3f54;
+        }
+        body.dark-mode #codingTab > div {
+            background-color: #16213e !important;
+            border-color: #2a3f54 !important;
+        }
+        body.dark-mode #codingTab h2 {
+            color: #e0e0e0 !important;
+            border-color: #2a3f54 !important;
+        }
+        body.dark-mode #codingTab .quick-add-bar {
+            background-color: #1a1a2e !important;
+            border-color: #2a3f54 !important;
+        }
+        body.dark-mode #codingTab input {
+            background-color: #2a3f54 !important;
+            color: #e0e0e0 !important;
+            border-color: #4a5f74 !important;
+        }
+        body.dark-mode #codingTab table {
+            border-color: #2a3f54 !important;
+        }
+        body.dark-mode #codingTab th {
+            background-color: #2a3f54 !important;
+            color: #e0e0e0 !important;
+        }
+        body.dark-mode #codingTab td {
+            color: #e0e0e0 !important;
+            border-color: #2a3f54 !important;
+        }
+        body.dark-mode .search-popup, body.dark-mode .cust-search-popup {
+            background-color: #1a1a2e !important;
+            border-color: #2a3f54 !important;
+        }
+        body.dark-mode .search-item {
+            color: #e0e0e0 !important;
+            border-color: #2a3f54 !important;
+        }
+        body.dark-mode .search-item:hover {
+            background-color: #2a3f54 !important;
+            color: white !important;
+        }
+        body.dark-mode .modal-content {
+            background-color: #16213e !important;
+            border-color: #2a3f54 !important;
+        }
+        body.dark-mode .modal-content label {
+            color: #e0e0e0 !important;
+        }
+        body.dark-mode .modal-content input {
+            background-color: #2a3f54 !important;
+            color: #e0e0e0 !important;
+            border-color: #4a5f74 !important;
+        }
+        body.dark-mode #dashboardSummary {
+            background-color: #1a1a2e !important;
+            border-color: #2a3f54 !important;
+            color: #e0e0e0 !important;
+        }
+        body.dark-mode #stockDisplay {
+            background-color: #1a1a2e !important;
+            border-color: #2a3f54 !important;
+            color: #e0e0e0 !important;
+        }
+        body.dark-mode #stockDisplay .stock-value {
+            background: #2a3f54 !important;
+        }
+        body.dark-mode #stockDisplay .placeholder-text {
+            color: #95a5a6 !important;
+        }
+        body.dark-mode #invoiceSearchModal .modal-content {
+            background-color: #16213e !important;
+            border-color: #2a3f54 !important;
+        }
+        body.dark-mode #invoiceSearchModal input {
+            background-color: #2a3f54 !important;
+            color: #e0e0e0 !important;
+            border-color: #4a5f74 !important;
+        }
+        body.dark-mode #invoiceSearchModal select {
+            background-color: #2a3f54 !important;
+            color: #e0e0e0 !important;
+            border-color: #4a5f74 !important;
+        }
+        body.dark-mode #invoiceSearchModal td {
+            color: #e0e0e0 !important;
+            border-color: #2a3f54 !important;
+        }
+        
+        /* ======================================================= */
+        /* TOP NAV - RESPONSIVE */
+        /* ======================================================= */
+        .top-nav {
+            background-color: #2a3f54;
+            color: #ffffff;
+            padding: 6px 10px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+        .top-nav-brand { 
+            font-weight: bold; 
+            font-size: 13px; 
+            margin-right: 10px; 
+        }
+        .nav-item { 
+            color: #bdc3c7; 
+            cursor: pointer; 
+            text-decoration: none; 
+            font-size: 10px;
+            padding: 2px 6px;
+            white-space: nowrap;
+        }
+        .nav-item:hover { color: white; }
+        .nav-item.active { color: white; font-weight: bold; }
+        
+        /* Top Nav Dropdown Styles */
+        .top-nav select {
+            background: transparent;
+            color: white;
+            border: none;
+            font-size: 10px;
+            font-weight: bold;
+            cursor: pointer;
+            padding: 4px 0;
+            outline: none;
+        }
+        .top-nav select option {
+            background: #2a3f54;
+            color: white;
+        }
+        .top-nav .invoice-type-indicator {
+            color: #27ae60;
+            font-size: 10px;
+            font-weight: bold;
+        }
+        
+        .window-title {
+            font-weight: bold;
+            color: #2c3e50;
+            border-bottom: 1px solid #bdc3c7;
+            padding-bottom: 5px;
+            margin-bottom: 12px;
+            font-size: 13px;
+        }
+
+        /* Dashboard Summary Bar */
+        #dashboardSummary {
+            background: #f8f9fa;
+            padding: 8px 12px;
+            border-radius: 5px;
+            margin-bottom: 10px;
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+            border: 1px solid #d5dbdb;
+            font-size: 11px;
+        }
+        #dashboardSummary div {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+        #dashboardSummary strong {
+            color: #2c3e50;
+        }
+
+        /* Lock Mode Styles */
+        .locked-field {
+            pointer-events: none;
+            opacity: 0.6;
+            background-color: #e8e8e8 !important;
+        }
+        .locked-field input, .locked-field select {
+            pointer-events: none;
+            opacity: 0.6;
+            background-color: #e8e8e8 !important;
+            cursor: not-allowed;
+        }
+        .search-mode-field {
+            pointer-events: auto !important;
+            opacity: 1 !important;
+            background-color: #fffde7 !important;
+        }
+        .search-mode-field input {
+            pointer-events: auto !important;
+            opacity: 1 !important;
+            background-color: #fffde7 !important;
+        }
+        body.dark-mode .locked-field {
+            background-color: #2a2a3e !important;
+        }
+        body.dark-mode .locked-field input {
+            background-color: #2a2a3e !important;
+        }
+        body.dark-mode .search-mode-field {
+            background-color: #3d3d2e !important;
+        }
+        body.dark-mode .search-mode-field input {
+            background-color: #3d3d2e !important;
+        }
+
+        /* Mode Indicator */
+        .mode-indicator {
+            display: inline-block;
+            padding: 3px 12px;
+            border-radius: 12px;
+            font-size: 10px;
+            font-weight: bold;
+            margin-left: 10px;
+        }
+        .mode-locked {
+            background-color: #e74c3c;
+            color: white;
+        }
+        .mode-edit {
+            background-color: #27ae60;
+            color: white;
+        }
+        .mode-search {
+            background-color: #f39c12;
+            color: white;
+        }
+
+        /* ======================================================= */
+        /* INVOICE META GRID - RESPONSIVE */
+        /* ======================================================= */
+        .invoice-meta-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 8px 16px;
+            background: #eaeded;
+            padding: 8px 12px;
+            border: 1px solid #bdc3c7;
+            margin-bottom: 12px;
+        }
+        .meta-field { 
+            display: flex; 
+            flex-direction: column; 
+            position: relative; 
+            min-width: 0;
+        }
+        .meta-field label { 
+            font-weight: bold; 
+            margin-bottom: 2px; 
+            color: #34495e; 
+            font-size: 11px;
+        }
+        .meta-field input {
+            padding: 4px 6px;
+            border: 1px solid #a6acaf;
+            background: white;
+            font-size: 11px;
+            color: #000;
+            width: 100%;
+            box-sizing: border-box;
+        }
+
+        /* ======================================================= */
+        /* PRODUCT INPUT ROW - RESPONSIVE */
+        /* ======================================================= */
+        .item-input-row {
+            background: #ebf5fb;
+            border: 1px solid #a9dfbf;
+            padding: 6px 8px;
+            display: grid;
+            grid-template-columns: 1.2fr 1.8fr 1.2fr 0.6fr 0.6fr 0.8fr 0.8fr 1fr auto;
+            gap: 6px;
+            align-items: flex-end;
+            margin-bottom: 12px;
+        }
+        .item-input-row label { 
+            font-weight: bold; 
+            font-size: 10px; 
+            display: block; 
+            margin-bottom: 2px; 
+        }
+        .item-input-row input { 
+            padding: 3px 4px; 
+            width: 100%; 
+            border: 1px solid #a6acaf; 
+            box-sizing: border-box; 
+            font-size: 11px;
+        }
+        .item-input-row input:focus {
+            outline: 2px solid #3498db;
+            outline-offset: -1px;
+        }
+        .search-container { 
+            position: relative; 
+            grid-row: span 2;
+            align-self: flex-start;
+            min-width: 0;
+        }
+        .search-popup, .cust-search-popup {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            width: 100%;
+            background: white;
+            border: 1px solid #2980b9;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+            z-index: 999;
+            max-height: 200px;
+            overflow-y: auto;
+            display: none;
+        }
+        .search-item { padding: 6px 10px; cursor: pointer; border-bottom: 1px solid #eee; color: #000; }
+        .search-item:hover { background: #3498db; color: white; }
+
+        /* ======================================================= */
+        /* STOCK IN HAND */
+        /* ======================================================= */
+        #stockDisplay {
+            background: #f8f9fa;
+            border: 2px solid #2980b9;
+            border-radius: 4px;
+            padding: 2px 10px;
+            min-height: 22px;
+            max-height: 26px;
+            display: flex;
+            align-items: center;
+            font-weight: bold;
+            font-size: 10px;
+            transition: all 0.3s;
+            color: #2c3e50;
+            width: 100%;
+            overflow: hidden;
+        }
+        #stockDisplay .stock-value {
+            background: #1a1a2e;
+            color: white;
+            padding: 1px 10px;
+            border-radius: 3px;
+            font-weight: bold;
+            font-size: 10px;
+        }
+        #stockDisplay .status-badge {
+            padding: 1px 6px;
+            border-radius: 3px;
+            font-weight: bold;
+            font-size: 8px;
+        }
+        #stockDisplay .status-badge.in-stock { 
+            color: #27ae60; 
+            background: #d5f5e3; 
+        }
+        #stockDisplay .status-badge.low-stock { 
+            color: #f39c12; 
+            background: #fef9e7; 
+        }
+        #stockDisplay .status-badge.out-of-stock { 
+            color: #e74c3c; 
+            background: #fdedec; 
+        }
+        #stockDisplay.in-stock { border-color: #2980b9; }
+        #stockDisplay.low-stock { border-color: #f39c12; }
+        #stockDisplay.out-of-stock { border-color: #e74c3c; }
+        #stockDisplay .placeholder-text {
+            color: #95a5a6;
+            font-weight: normal;
+            font-size: 9px;
+        }
+
+        /* ======================================================= */
+        /* TABLE AREA - AUTO HEIGHT */
+        /* ======================================================= */
+        .table-area {
+            background: white;
+            border: 1px solid #bdc3c7;
+            height: auto;
+            max-height: 350px;
+            overflow-y: auto;
+            width: 100%;
+            box-sizing: border-box;
+        }
+        table { 
+            width: 100%; 
+            border-collapse: collapse; 
+            font-size: 11px;
+        }
+        th { 
+            background: #34495e; 
+            color: white; 
+            padding: 5px 4px; 
+            font-size: 10px; 
+            border: 1px solid #2c3e50; 
+            position: sticky;
+            top: 0;
+            z-index: 5;
+        }
+        td { 
+            padding: 4px; 
+            border: 1px solid #d5dbdb; 
+            text-align: center; 
+            font-size: 11px; 
+            color: #000; 
+        }
+        tr:nth-child(even) { background-color: #f9f9f9; }
+
+        /* ======================================================= */
+        /* BOTTOM ACCOUNTING AREA - RESPONSIVE */
+        /* ======================================================= */
+        .bottom-accounting-area {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            margin-top: 12px;
+            gap: 15px;
+        }
+        .left-counts { 
+            display: flex; 
+            gap: 12px; 
+            align-items: center; 
+            flex-wrap: wrap;
+        }
+        .left-counts label { 
+            font-weight: bold; 
+            font-size: 11px;
+        }
+        .left-counts input { 
+            width: 55px; 
+            padding: 2px 4px; 
+            border: 1px solid #a6acaf; 
+            background: #e5e8e8; 
+            text-align: center; 
+            font-weight: bold; 
+            font-size: 11px;
+        }
+        
+        .right-calculations {
+            background: #eaeded;
+            border: 1px solid #bdc3c7;
+            padding: 8px 12px;
+            width: 100%;
+            max-width: 320px;
+            justify-self: end;
+        }
+        .calc-line { 
+            display: flex; 
+            justify-content: space-between; 
+            margin-bottom: 4px; 
+            align-items: center; 
+        }
+        .calc-line label { 
+            font-weight: bold; 
+            font-size: 11px;
+        }
+        .calc-line input { 
+            width: 100px; 
+            padding: 3px 4px; 
+            border: 1px solid #a6acaf; 
+            text-align: right; 
+            font-weight: bold; 
+            color: #000; 
+            font-size: 11px;
+        }
+
+        /* ======================================================= */
+        /* ACTION COMMAND ROW - RESPONSIVE */
+        /* ======================================================= */
+        .footer-action-bar {
+            border-top: 1px solid #bdc3c7;
+            padding-top: 10px;
+            margin-top: 12px;
+            display: flex;
+            gap: 6px;
+            flex-wrap: wrap;
+        }
+        .btn-panel {
+            padding: 5px 14px;
+            color: white;
+            border: 1px solid rgba(0,0,0,0.2);
+            cursor: pointer;
+            font-weight: bold;
+            font-size: 11px;
+            border-radius: 2px;
+            flex: 0 1 auto;
+            white-space: nowrap;
+        }
+        .btn-new { background-color: #007acc; }
+        .btn-search { background-color: #f39c12; }
+        .btn-save { background-color: #107c41; }
+        .btn-delete { background-color: #e74c3c; }
+        .btn-clear { background-color: #e67e22; }
+        .btn-print { background-color: #27ae60; }
+        .btn-excel { background-color: #8e44ad; }
+        .btn-theme { background-color: #6c7a89; }
+        .btn-lock { background-color: #95a5a6; }
+        .btn-sync { background-color: #2980b9; }
+        .btn-backup { background-color: #6c7a89; }
+        .btn-restore { background-color: #8e44ad; }
+
+        /* Styles for Dynamic Tabs */
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+
+        /* Modal Styles */
+        .modal-content {
+            background: #f4f6f9;
+            border: 1px solid #95a5a6;
+            padding: 20px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+            max-width: 95%;
+            position: relative;
+            border-radius: 4px;
+            width: 100%;
+            box-sizing: border-box;
+        }
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+            padding: 10px;
+        }
+        .modal-overlay.show {
+            display: flex;
+        }
+
+        /* Invoice Search Modal */
+        #invoiceSearchModal .modal-content {
+            width: 700px;
+            max-width: 95%;
+        }
+        #invoiceSearchModal input {
+            padding: 6px 10px;
+            border: 2px solid #3498db;
+            border-radius: 4px;
+            font-size: 12px;
+            min-width: 150px;
+            flex: 1;
+        }
+        #invoiceSearchModal select {
+            padding: 6px 10px;
+            border: 1px solid #bdc3c7;
+            border-radius: 4px;
+            font-size: 11px;
+            background: white;
+        }
+        #invoiceSearchTable {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 11px;
+        }
+        #invoiceSearchTable th {
+            padding: 6px;
+            background: #2e4053;
+            color: white;
+            position: sticky;
+            top: 0;
+            z-index: 10;
+            font-size: 10px;
+        }
+        #invoiceSearchTable td {
+            padding: 6px;
+            border-bottom: 1px solid #eee;
+            cursor: pointer;
+            transition: background 0.2s;
+            font-size: 10px;
+        }
+        #invoiceSearchTable tr:hover td {
+            background-color: #eaf2f8;
+        }
+        body.dark-mode #invoiceSearchTable tr:hover td {
+            background-color: #2a3f54;
+        }
+
+        /* ======================================================= */
+        /* RESPONSIVE BREAKPOINTS */
+        /* ======================================================= */
+
+        /* Tablet - 1024px se kam */
+        @media screen and (max-width: 1024px) {
+            .invoice-meta-grid {
+                grid-template-columns: repeat(3, 1fr);
+                gap: 6px 12px;
+            }
+            
+            .item-input-row {
+                grid-template-columns: 1.2fr 1.5fr 0.8fr 0.6fr 0.6fr 0.6fr 0.8fr auto;
+                gap: 5px;
+            }
+            
+            body {
+                font-size: 11px;
+            }
+        }
+
+        /* Mobile - 768px se kam */
+        @media screen and (max-width: 768px) {
+            .invoice-meta-grid {
+                grid-template-columns: repeat(2, 1fr);
+                gap: 4px 8px;
+                padding: 6px 8px;
+            }
+            
+            .item-input-row {
+                grid-template-columns: 1fr 1fr;
+                gap: 4px;
+                padding: 5px 6px;
+            }
+            
+            .item-input-row .search-container {
+                grid-column: 1 / -1;
+                grid-row: 1 / 2;
+            }
+            
+            .item-input-row label {
+                font-size: 9px;
+            }
+            
+            .item-input-row input {
+                font-size: 10px;
+                padding: 2px 3px;
+            }
+            
+            .bottom-accounting-area {
+                grid-template-columns: 1fr;
+                gap: 8px;
+            }
+            
+            .right-calculations {
+                width: 100%;
+                max-width: 100%;
+                justify-self: start;
+            }
+            
+            .footer-action-bar {
+                gap: 4px;
+            }
+            
+            .btn-panel {
+                font-size: 9px;
+                padding: 4px 8px;
+                flex: 1 0 40%;
+                text-align: center;
+                white-space: normal;
+            }
+            
+            body {
+                font-size: 10px;
+                padding: 2px;
+            }
+            
+            .main-window {
+                padding: 4px;
+                margin: 4px;
+            }
+            
+            .top-nav {
+                padding: 4px 6px;
+                gap: 4px;
+            }
+            
+            .top-nav-brand {
+                font-size: 11px;
+                margin-right: 5px;
+            }
+            
+            .nav-item {
+                font-size: 8px;
+                padding: 2px 4px;
+            }
+            
+            .top-nav select {
+                font-size: 8px;
+                max-width: 80px;
+                padding: 2px 4px;
+            }
+            
+            .table-area {
+                max-height: 200px;
+            }
+            
+            th, td {
+                padding: 3px 2px;
+                font-size: 9px;
+            }
+            
+            .calc-line input {
+                width: 80px;
+                padding: 2px;
+                font-size: 10px;
+            }
+            
+            .calc-line label {
+                font-size: 10px;
+            }
+            
+            #dashboardSummary {
+                font-size: 9px;
+                padding: 4px 8px;
+                gap: 4px;
+            }
+            
+            #invoiceSearchModal .modal-content {
+                width: 95%;
+                padding: 12px;
+            }
+            #invoiceSearchModal input {
+                min-width: 80px;
+                font-size: 11px;
+            }
+            #invoiceSearchTable th, #invoiceSearchTable td {
+                padding: 4px;
+                font-size: 9px;
+            }
+            
+            #stockDisplay {
+                font-size: 9px;
+                padding: 2px 6px;
+                min-height: 18px;
+                max-height: 22px;
+            }
+            
+            .window-title {
+                font-size: 11px;
+                padding-bottom: 4px;
+                margin-bottom: 8px;
+            }
+        }
+
+        /* Small Mobile - 480px se kam */
+        @media screen and (max-width: 480px) {
+            .invoice-meta-grid {
+                grid-template-columns: 1fr;
+                gap: 3px 6px;
+                padding: 4px 6px;
+            }
+            
+            .item-input-row {
+                grid-template-columns: 1fr 1fr;
+                gap: 3px;
+                padding: 4px;
+            }
+            
+            .item-input-row .search-container {
+                grid-column: 1 / -1;
+            }
+            
+            .btn-panel {
+                flex: 1 0 100%;
+                font-size: 9px;
+                padding: 4px 6px;
+            }
+            
+            .top-nav {
+                padding: 3px 4px;
+                gap: 3px;
+            }
+            
+            .top-nav-brand {
+                font-size: 10px;
+                margin-right: 3px;
+            }
+            
+            .nav-item {
+                font-size: 7px;
+                padding: 1px 3px;
+            }
+            
+            .top-nav select {
+                font-size: 7px;
+                max-width: 60px;
+                padding: 1px 2px;
+            }
+            
+            .table-area {
+                max-height: 150px;
+            }
+            
+            th, td {
+                padding: 2px 1px;
+                font-size: 8px;
+            }
+            
+            body {
+                font-size: 9px;
+                padding: 1px;
+            }
+            
+            .main-window {
+                padding: 3px;
+                margin: 3px;
+            }
+            
+            .meta-field label {
+                font-size: 9px;
+            }
+            
+            .meta-field input {
+                font-size: 9px;
+                padding: 3px 4px;
+            }
+            
+            #dashboardSummary {
+                font-size: 8px;
+                padding: 3px 6px;
+                gap: 3px;
+                flex-direction: column;
+            }
+            
+            .right-calculations {
+                padding: 5px 8px;
+            }
+            
+            .calc-line input {
+                width: 65px;
+                font-size: 9px;
+            }
+            
+            .modal-content {
+                padding: 12px;
+                max-width: 98%;
+            }
+            
+            #invoiceSearchModal .modal-content {
+                padding: 10px;
+            }
+            #invoiceSearchModal input {
+                min-width: 60px;
+                font-size: 10px;
+                padding: 4px 6px;
+            }
+            #invoiceSearchTable th, #invoiceSearchTable td {
+                padding: 3px;
+                font-size: 8px;
+            }
+            
+            #stockDisplay {
+                font-size: 8px;
+                padding: 1px 4px;
+                min-height: 16px;
+                max-height: 20px;
+            }
+            
+            .window-title {
+                font-size: 10px;
+                padding-bottom: 3px;
+                margin-bottom: 6px;
+            }
+            
+            .mode-indicator {
+                font-size: 8px;
+                padding: 2px 8px;
+                margin-left: 5px;
+            }
+        }
+        
+        /* Print Styles */
+        @media print {
+            .btn-panel, .top-nav, #dashboardSummary, .footer-action-bar { 
+                display: none !important; 
+            }
+            body { 
+                background: white !important; 
+                font-size: 10px !important;
+            }
+            .main-window { 
+                border: none !important; 
+                margin: 0 !important; 
+                padding: 5px !important; 
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- ======================================================= -->
+    <!-- TOP NAVIGATION BAR                                      -->
+    <!-- ======================================================= -->
+    <div class="top-nav">
+        <span class="top-nav-brand">🏪 Capri Trading</span>
+        
+        <!-- ✅ Admin Only: Invoice Type Dropdown -->
+        <div class="admin-only" style="display: none; align-items: center; gap: 4px; background: #3d566e; padding: 2px 8px; border-radius: 3px;">
+            <span style="color: #bdc3c7; font-size: 10px;">📄</span>
+            <select id="invoiceType" onchange="updateInvoiceType()" style="background: transparent; color: white; border: none; font-size: 10px; font-weight: bold; cursor: pointer; padding: 4px 0; outline: none;">
+                <option value="sale" style="background: #2a3f54; color: white;">💰 Sale</option>
+                <option value="return" style="background: #2a3f54; color: white;">🔄 Return</option>
+            </select>
+            <span id="invoiceTypeIndicator" style="color: #27ae60; font-size: 9px; font-weight: bold;">⬇️</span>
+        </div>
+        
+        <!-- ✅ Menu Items - Role Based -->
+        <a class="nav-item active" onclick="showActiveTab('invoiceTab')" style="cursor: pointer;">📋 Dashboard / Invoice</a>
+        
+        <!-- ✅ Admin Only: Product Setup -->
+        <a class="nav-item admin-only" onclick="showActiveTab('codingTab')" style="cursor: pointer; display: none;">💻 Product Setup & Rates</a>
+        
+        <!-- ✅ Admin Only: Accounts -->
+        <a class="nav-item admin-only" onclick="showActiveTab('accountsTab')" style="cursor: pointer; display: none;">👥 Accounts</a>
+        
+        <!-- ✅ Admin Only: Accounts Reports -->
+        <div class="nav-item-dropdown admin-only" style="position: relative; display: none;">
+            <a class="nav-item" id="accountsReportsMenuBtn" style="cursor: pointer;">📊 Accounts Reports ▾</a>
+            <div id="accountsReportsDropdown" style="display: none; position: absolute; top: 100%; left: 0; background-color: #2a3f54; min-width: 160px; box-shadow: 0px 8px 16px rgba(0,0,0,0.2); z-index: 10000; border: 1px solid #4f5f6f;">
+                <a onclick="openAccountLedgerModal()" style="color: #bdc3c7; padding: 8px 12px; text-decoration: none; display: block; font-size: 10px; cursor: pointer;" onmouseover="this.style.color='white'; this.style.backgroundColor='#34495e'" onmouseout="this.style.color='#bdc3c7'; this.style.backgroundColor='transparent'">📋 Account Ledger</a>
+            </div>
+        </div>
+
+        <!-- ✅ Admin Only: Inventory Report -->
+        <a class="nav-item admin-only" onclick="openInventoryLedgerModalDirect()" style="cursor: pointer; padding: 2px 6px; background: #27ae60; color: white; border-radius: 3px; font-weight: bold; font-size: 9px; display: none;" onmouseover="this.style.background='#2ecc71'" onmouseout="this.style.background='#27ae60'">📦 Inventory</a>
+        
+        <!-- ✅ Online/Offline Status -->
+        <div style="display: flex; align-items: center; gap: 6px; margin-left: 10px;">
+            <span id="connectionStatus" style="font-size: 8px; padding: 2px 8px; border-radius: 10px; background: #27ae60; color: white;">✅ Online</span>
+            <span id="syncStatus" style="font-size: 7px; color: #bdc3c7;">🔄 <span id="lastSyncTime">Never</span></span>
+        </div>
+        
+        <!-- Theme Toggle Button -->
+        <a class="nav-item btn-theme" onclick="toggleTheme()" style="cursor: pointer; padding: 2px 8px; background: #6c7a89; border-radius: 3px; color: white; font-size: 9px;">🌙 Theme</a>
+        
+        <!-- ✅ User Info & Logout -->
+        <div style="display: flex; align-items: center; gap: 6px; margin-left: auto; flex-wrap: wrap;">
+            <span style="color: #bdc3c7; font-size: 10px;">👤 <span id="userDisplayName">User</span></span>
+            <span id="userRoleBadge" style="font-size: 8px; padding: 2px 8px; border-radius: 10px; background: #27ae60; color: white;"></span>
+            <a class="nav-item" onclick="logoutUser()" style="cursor: pointer; padding: 2px 8px; background: #e74c3c; color: white; border-radius: 3px; font-size: 9px;">🚪 Logout</a>
+            <!-- ✅ Admin Only: Change Password -->
+            <a class="nav-item admin-only" onclick="openChangePasswordModal()" style="cursor: pointer; padding: 2px 8px; background: #f39c12; color: white; border-radius: 3px; font-size: 9px; display: none;">🔑 Change Password</a>
+        </div>
+    </div>
+
+    <!-- ======================================================= -->
+    <!-- TAB 1: INVOICE DASHBOARD                                -->
+    <!-- ======================================================= -->
+    <div id="invoiceTab" class="tab-content active">
+        <div class="main-window">
+            <!-- Window Title with Mode Indicator -->
+            <div class="window-title" id="mainWindowTitle">
+                ≡ Sale Invoice Management Panel
+                <span id="modeIndicator" class="mode-indicator mode-locked">🔒 Locked</span>
+            </div>
+            
+            <!-- Dashboard Summary Bar -->
+            <div id="dashboardSummary">
+                <div><strong>💰 Today's Sales:</strong> <span id="summarySales">Loading...</span></div>
+                <div><strong>📄 Total Invoices:</strong> <span id="summaryInvoices">Loading...</span></div>
+                <div><strong>📦 Stock Value:</strong> <span id="summaryStock">Loading...</span></div>
+                <div><strong>📦 Total Stock Boxes:</strong> <span id="summaryTotalBoxes" style="color:#2980b9; font-weight:bold;">Loading...</span></div>
+                <div><strong>📦 Total Stock Pieces:</strong> <span id="summaryTotalPieces" style="color:#2980b9; font-weight:bold;">Loading...</span></div>
+                <div><strong>🔄 Last Sync:</strong> <span id="summarySync">Loading...</span></div>
+            </div>
+
+            <!-- Invoice Meta Fields -->
+            <div class="invoice-meta-grid" id="invoiceMetaGrid">
+                <div class="meta-field">
+                    <label>Invoice # <span style="color:#2980b9; font-size:9px;">(Enter to Search)</span></label>
+                    <input type="text" id="invNo" placeholder="Press Enter to search..." class="nav-enter" data-next="custTitle" enterkeyhint="search">
+                </div>
+                <div class="meta-field">
+                    <label>Invoice Date</label>
+                    <input type="date" id="invDate" class="nav-enter" data-next="custTitle" style="padding: 3px;">
+                </div>
+                <div class="meta-field">
+                    <label>Customer Name & No</label>
+                    <input type="text" id="custTitle" placeholder="" class="nav-enter" data-next="custCode">
+                </div>
+                <div class="meta-field">
+                    <label>Reference Date</label>
+                    <input type="date" id="refDate" style="padding: 3px;">
+                </div>
+                <div class="meta-field">
+                    <label>Customer Code</label>
+                    <input type="text" id="custCode" value="030603010004" class="nav-enter" data-next="custType">
+                </div>
+                <div class="meta-field">
+                    <label>Customer Title</label>
+                    <input type="text" id="custType" placeholder="Search Shop..." class="nav-enter" data-next="searchProduct" autocomplete="off">
+                    <div id="custSearchPopup" class="cust-search-popup"></div>
+                </div>
+                <div class="meta-field">
+                    <label>Safe A/C</label>
+                    <input type="text" id="safeAC" value="040101010001">
+                </div>
+                <div class="meta-field">
+                    <label>Sale Title</label>
+                    <select id="saleTitle" style="padding: 3px; border: 1px solid #a6acaf; background: white; font-size: 11px; color: #000; width:100%;">
+                        <option>SALES</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- ======================================================= -->
+            <!-- PRODUCT INPUT ROW                                        -->
+            <!-- ======================================================= -->
+            <div class="item-input-row" id="itemInputRow">
+                <!-- Product Code / Search -->
+                <div class="search-container">
+                    <label>Product Code / Search</label>
+                    <input type="text" id="searchProduct" placeholder="Type / Enter..." autocomplete="one-time-code" class="nav-enter" data-next="boxQty" enterkeyhint="search">
+                    <div id="searchPopup" class="search-popup"></div>
+                </div>
+                
+                <!-- Product Name -->
+                <div style="grid-row: span 1;">
+                    <label>Product Name</label>
+                    <input type="text" id="prodNameDisplay" readonly style="background:#f2f4f4;">
+                </div>
+                
+                <!-- Box -->
+                <div style="grid-row: span 1;">
+                    <label>Box</label>
+                    <input type="number" id="boxQty" placeholder="" class="nav-enter" data-next="pieceQty">
+                </div>
+                
+                <!-- Piece -->
+                <div style="grid-row: span 1;">
+                    <label>Piece</label>
+                    <input type="number" id="pieceQty" placeholder="" class="nav-enter" data-next="itemRate">
+                </div>
+                
+                <!-- Rate -->
+                <div style="grid-row: span 1;">
+                    <label>Rate</label>
+                    <input type="number" id="itemRate" placeholder="" class="nav-enter" data-next="itemDisc">
+                </div>
+                
+                <!-- Disc -->
+                <div style="grid-row: span 1;">
+                    <label>Disc</label>
+                    <input type="number" id="itemDisc" placeholder="" class="nav-enter" data-trigger="add-btn">
+                </div>
+                
+                <!-- Amount -->
+                <div style="grid-row: span 1;">
+                    <label>Amount</label>
+                    <input type="number" id="rowAmount" readonly style="background:#f2f4f4;">
+                </div>
+                
+                <!-- Add Button -->
+                <div style="grid-row: span 1; display: flex; align-items: flex-end;">
+                    <button type="button" id="add-btn" style="padding:3px 8px; background:#34495e; color:white; border:none; cursor:pointer; font-weight:bold; width:100%; border-radius:2px; height:26px; font-size:10px;" onclick="commitRowItem()">Add</button>
+                </div>
+                
+                <!-- Stock In Hand -->
+                <div style="grid-column: 2 / 8; grid-row: 2 / 3; margin-top: 2px;">
+                    <div id="stockDisplay" class="in-stock">
+                        <span class="placeholder-text">Select a product to see stock</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Invoice Table -->
+            <div class="table-area">
+                <table id="invoiceTable">
+                    <thead>
+                        <tr>
+                            <th>Code</th>
+                            <th style="width: 40%;">Product Name</th>
+                            <th>Box</th>
+                            <th>Piece</th>
+                            <th>Rate</th>
+                            <th>Amount</th>
+                            <th>P/Box</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+
+            <!-- Bottom Accounting Area -->
+            <div class="bottom-accounting-area">
+                <div class="left-counts">
+                    <div><label>Total Box: </label><input type="text" id="totalBoxesCount" value="0" readonly></div>
+                    <div><label>Total Piece: </label><input type="text" id="totalPiecesCount" value="0" readonly></div>
+                </div>
+
+                <div class="right-calculations">
+                    <div class="calc-line">
+                        <label>Amount:</label>
+                        <input type="number" id="calcGross" value="0" readonly>
+                    </div>
+                    <div class="calc-line">
+                        <label>Previous Balance:</label>
+                        <input type="number" id="calcPrev" value="0" oninput="runTotalBal()" class="nav-enter" data-next="calcCashRec">
+                    </div>
+                    <div class="calc-line" style="color:#c0392b;">
+                        <label>Cash Received:</label>
+                        <input type="number" id="calcCashRec" value="0" oninput="runTotalBal()">
+                    </div>
+                    <div class="calc-line" style="font-size:12px; color:#27ae60;">
+                        <label>Net Total Balance:</label>
+                        <input type="number" id="calcNetTotal" value="0" readonly style="background:#d4edda; color:#155724;">
+                    </div>
+                </div>
+            </div>
+
+            <!-- Footer Action Bar -->
+            <div class="footer-action-bar">
+                <button class="btn-panel btn-new" onclick="enableEditMode()">🆕 New</button>
+                <button class="btn-panel btn-search" onclick="enableSearchMode()">🔍 Search</button>
+                <button class="btn-panel btn-save" onclick="saveToIndexedDB()">💾 Save</button>
+                <!-- ✅ Admin Only: Delete Button -->
+                <button class="btn-panel btn-delete admin-only" onclick="deleteCurrentInvoice()" style="display: none;">🗑️ Delete</button>
+                <button class="btn-panel btn-clear" onclick="resetSystem(false)">🧹 Clear</button>
+                <button class="btn-panel btn-print" onclick="generatePrintInNewTab()">🖨️ Print</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ======================================================= -->
+    <!-- TAB 2: PRODUCT SETUP & RATES (Admin Only)               -->
+    <!-- ======================================================= -->
+    <div id="codingTab" class="tab-content" style="margin: 6px;">
+        <div style="background: white; border: 1px solid #95a5a6; padding: 12px; border-radius: 4px; box-shadow: 0 2px 5px rgba(0,0,0,0.05);">
+            <h2 style="margin-top: 0; color: #2c3e50; border-bottom: 2px solid #2e4053; padding-bottom: 6px; font-size: 14px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap;">
+                <span>🛠️ Product Registry & Bulk Rate Updater</span>
+                <span style="font-size: 10px; color: #7f8c8d; font-weight: normal;">*All columns editable</span>
+            </h2>
+            
+            <!-- Quick Add Product Bar -->
+            <div class="quick-add-bar" style="background: #f8f9f9; border: 1px solid #d5dbdb; padding: 8px 10px; margin-bottom: 12px; display: flex; gap: 6px; align-items: center; flex-wrap: wrap; border-radius: 3px;">
+                <strong style="color: #2e4053; font-size: 11px;">🆕 Quick Add:</strong>
+                <input type="text" id="dashNewCode" placeholder="Code" style="padding: 4px; width: 70px; border: 1px solid #bdc3c7; font-size: 10px;">
+                <input type="text" id="dashNewName" placeholder="Product Name" style="padding: 4px; flex: 1; min-width: 100px; border: 1px solid #bdc3c7; text-transform: uppercase; font-size: 10px;">
+                <input type="number" id="dashNewPrice" placeholder="Rate" style="padding: 4px; width: 60px; border: 1px solid #bdc3c7; font-size: 10px;">
+                <input type="number" id="dashNewPBox" placeholder="P/Box" value="1" style="padding: 4px; width: 50px; border: 1px solid #bdc3c7; font-size: 10px;">
+                <input type="number" id="dashNewStockBoxes" placeholder="Boxes" value="0" style="padding: 4px; width: 50px; border: 1px solid #bdc3c7; font-size: 10px;">
+                <input type="number" id="dashNewStockPieces" placeholder="Pieces" value="0" style="padding: 4px; width: 50px; border: 1px solid #bdc3c7; font-size: 10px;">
+                <button onclick="addNewProductFromDashboard()" style="background: #27ae60; color: white; border: none; padding: 4px 12px; font-weight: bold; cursor: pointer; border-radius: 2px; font-size: 10px;">➕ Add</button>
+            </div>
+
+            <!-- Products Grid Table -->
+            <div style="max-height: 350px; overflow-y: auto; border: 1px solid #bdc3c7;">
+                <table style="width: 100%; border-collapse: collapse; font-size: 10px; text-align: left;">
+                    <thead style="position: sticky; top: 0; background: #2e4053; color: white; z-index: 10;">
+                        <tr>
+                            <th style="padding: 4px 6px; width: 10%;">Product Code</th>
+                            <th style="padding: 4px 6px; width: 30%;">Product Name</th>
+                            <th style="padding: 4px 6px; width: 13%;">Rate / Price</th>
+                            <th style="padding: 4px 6px; width: 8%;">P/Box</th>
+                            <th style="padding: 4px 6px; width: 12%; background:#e8f4f8; color:#2980b9;">Stock (Boxes)</th>
+                            <th style="padding: 4px 6px; width: 12%; background:#e8f4f8; color:#2980b9;">Stock (Pieces)</th>
+                            <th style="padding: 4px 6px; width: 10%; background:#fef9e7; color:#8e44ad; text-align:center;">Action</th>
+                        </tr>
+                    </thead>
+                    <tbody id="dashboardProductsTableBody">
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Action Buttons -->
+            <div style="margin-top: 10px; display: flex; justify-content: flex-end; gap: 8px; border-top: 1px solid #ddd; padding-top: 10px; flex-wrap: wrap;">
+                <button onclick="loadDashboardProductsGrid()" style="background: #95a5a6; color: white; border: none; padding: 5px 14px; font-weight: bold; cursor: pointer; border-radius: 2px; font-size: 10px;">🔄 Reset</button>
+                <button onclick="saveBulkRatesToDatabase()" style="background: #2e4053; color: white; border: none; padding: 5px 20px; font-size: 11px; font-weight: bold; cursor: pointer; border-radius: 2px;">💾 Save All</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ======================================================= -->
+    <!-- TAB 3: ACCOUNTS (Admin Only)                           -->
+    <!-- ======================================================= -->
+    <div id="accountsTab" class="tab-content" style="margin: 6px;">
+        <div style="background: white; border: 1px solid #95a5a6; padding: 15px; border-radius: 4px; text-align: center; min-height: 200px;">
+            <h2 style="color: #2c3e50; font-size: 14px;">👥 Accounts Module</h2>
+            <p style="color: #7f8c8d; font-size: 12px;">Accounts module is under development.</p>
+            <p style="color: #95a5a6; font-size: 10px;">Use "Reports" dropdown above for ledger reports.</p>
+        </div>
+    </div>
+
+    <!-- ======================================================= -->
+    <!-- MODALS                                                -->
+    <!-- ======================================================= -->
+
+    <!-- New Product Modal -->
+    <div id="newProductModal" class="modal-overlay show" style="display:none;">
+        <div class="modal-content" style="max-width:450px;">
+            <div style="font-weight:bold; color:#2c3e50; border-bottom:1px solid #bdc3c7; padding-bottom:5px; margin-bottom:12px; font-size:13px;">
+                ≡ Add New Product
+            </div>
+            <div style="display:flex; flex-direction:column; gap:8px; margin-bottom:12px;">
+                <div style="display:flex; flex-direction:column;">
+                    <label style="font-weight:bold; margin-bottom:2px; color:#34495e; font-size:11px;">Product Code</label>
+                    <input type="text" id="newProdCode" style="padding:4px; border:1px solid #a6acaf; font-size:11px;">
+                </div>
+                <div style="display:flex; flex-direction:column;">
+                    <label style="font-weight:bold; margin-bottom:2px; color:#34495e; font-size:11px;">Product Name</label>
+                    <input type="text" id="newProdName" style="padding:4px; border:1px solid #a6acaf; font-size:11px;">
+                </div>
+                <div style="display:flex; flex-direction:column;">
+                    <label style="font-weight:bold; margin-bottom:2px; color:#34495e; font-size:11px;">Rate / Price</label>
+                    <input type="number" id="newProdPrice" value="0" style="padding:4px; border:1px solid #a6acaf; font-size:11px;">
+                </div>
+                <div style="display:flex; flex-direction:column;">
+                    <label style="font-weight:bold; margin-bottom:2px; color:#34495e; font-size:11px;">Pieces per Box</label>
+                    <input type="number" id="newProdPBox" value="1" style="padding:4px; border:1px solid #a6acaf; font-size:11px;">
+                </div>
+                <div style="display:flex; flex-direction:column;">
+                    <label style="font-weight:bold; margin-bottom:2px; color:#34495e; font-size:11px;">Initial Stock (Boxes)</label>
+                    <input type="number" id="newProdStockBoxes" value="0" style="padding:4px; border:1px solid #a6acaf; font-size:11px;">
+                </div>
+                <div style="display:flex; flex-direction:column;">
+                    <label style="font-weight:bold; margin-bottom:2px; color:#34495e; font-size:11px;">Initial Stock (Pieces)</label>
+                    <input type="number" id="newProdStockPieces" value="0" style="padding:4px; border:1px solid #a6acaf; font-size:11px;">
+                </div>
+            </div>
+            <div style="display:flex; gap:8px; justify-content:flex-end; border-top:1px solid #bdc3c7; padding-top:10px;">
+                <button type="button" style="padding:5px 12px; background:#107c41; color:white; border:none; font-weight:bold; cursor:pointer; font-size:11px;" onclick="addNewProductToRegistry()">Save</button>
+                <button type="button" style="padding:5px 12px; background:#e74c3c; color:white; border:none; font-weight:bold; cursor:pointer; font-size:11px;" onclick="closeProductModal()">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Account Ledger Modal -->
+    <div id="accountLedgerModal" class="modal-overlay show" style="display:none;">
+        <div class="modal-content" style="max-width:500px;">
+            <div style="background: #eaeaea; color: #2c3e50; padding: 6px 10px; font-weight: bold; font-size: 12px; border-bottom: 1px solid #bdc3c7; display: flex; align-items: center; gap: 6px; margin: -15px -15px 12px -15px; border-radius: 4px 4px 0 0;">
+                <span>≡</span> Accounts Ledger Report
+            </div>
+            <div style="display:flex; flex-direction:column; gap:10px;">
+                <div style="display:grid; grid-template-columns:70px 1fr; align-items:center;">
+                    <label style="font-weight:bold; color:#333; font-size:11px; text-align:right; padding-right:12px;">Code:</label>
+                    <select id="ledgerPopupCode" style="padding:4px; border:1px solid #a6acaf; font-size:11px; background:white;" onchange="syncLedgerPopupFields('code')"></select>
+                </div>
+                <div style="display:grid; grid-template-columns:70px 1fr; align-items:center;">
+                    <label style="font-weight:bold; color:#333; font-size:11px; text-align:right; padding-right:12px;">Title:</label>
+                    <select id="ledgerPopupTitle" style="padding:4px; border:1px solid #a6acaf; font-size:11px; background:white;" onchange="syncLedgerPopupFields('title')"></select>
+                </div>
+                <div style="display:grid; grid-template-columns:70px 1fr; align-items:center;">
+                    <label style="font-weight:bold; color:#333; font-size:11px; text-align:right; padding-right:12px;">From:</label>
+                    <input type="date" id="ledgerPopupFromDate" style="padding:3px; border:1px solid #a6acaf; font-size:11px;">
+                </div>
+                <div style="display:grid; grid-template-columns:70px 1fr; align-items:center;">
+                    <label style="font-weight:bold; color:#333; font-size:11px; text-align:right; padding-right:12px;">To:</label>
+                    <input type="date" id="ledgerPopupToDate" style="padding:3px; border:1px solid #a6acaf; font-size:11px;">
+                </div>
+                <div style="display:flex; justify-content:center; margin-top:4px; border-top:1px solid #bdc3c7; padding-top:10px; gap:8px;">
+                    <button onclick="generateLiveLedgerTab()" style="padding:4px 20px; background:#27ae60; color:white; border:1px solid #219653; font-weight:bold; cursor:pointer; font-size:11px;">View</button>
+                    <button onclick="closeAccountLedgerModal()" style="padding:4px 20px; background:#e74c3c; color:white; border:1px solid #c0392b; font-weight:bold; cursor:pointer; font-size:11px;">Cancel</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Inventory Ledger Modal -->
+    <div id="inventoryLedgerModal" class="modal-overlay show" style="display:none;">
+        <div class="modal-content" style="max-width:500px;">
+            <div style="background: #16a085; color: white; padding: 6px 10px; font-weight: bold; font-size: 12px; border-bottom: 1px solid #bdc3c7; display: flex; align-items: center; gap: 6px; margin: -15px -15px 12px -15px; border-radius: 4px 4px 0 0;">
+                <span>≡</span> Inventory Ledger Report
+            </div>
+            <div style="display:flex; flex-direction:column; gap:10px;">
+                <div style="display:grid; grid-template-columns:70px 1fr; align-items:center;">
+                    <label style="font-weight:bold; color:#333; font-size:11px; text-align:right; padding-right:12px;">Item Code:</label>
+                    <select id="invPopupCode" style="padding:4px; border:1px solid #a6acaf; font-size:11px; background:white;" onchange="syncInventoryPopupFields('code')"></select>
+                </div>
+                <div style="display:grid; grid-template-columns:70px 1fr; align-items:center;">
+                    <label style="font-weight:bold; color:#333; font-size:11px; text-align:right; padding-right:12px;">Item Name:</label>
+                    <select id="invPopupTitle" style="padding:4px; border:1px solid #a6acaf; font-size:11px; background:white;" onchange="syncInventoryPopupFields('title')"></select>
+                </div>
+                <div style="display:grid; grid-template-columns:70px 1fr; align-items:center;">
+                    <label style="font-weight:bold; color:#333; font-size:11px; text-align:right; padding-right:12px;">From:</label>
+                    <input type="date" id="invPopupFromDate" style="padding:3px; border:1px solid #a6acaf; font-size:11px;">
+                </div>
+                <div style="display:grid; grid-template-columns:70px 1fr; align-items:center;">
+                    <label style="font-weight:bold; color:#333; font-size:11px; text-align:right; padding-right:12px;">To:</label>
+                    <input type="date" id="invPopupToDate" style="padding:3px; border:1px solid #a6acaf; font-size:11px;">
+                </div>
+                <div style="display:flex; justify-content:center; margin-top:4px; border-top:1px solid #bdc3c7; padding-top:10px; gap:8px;">
+                    <button onclick="generateLiveInventoryTab()" style="padding:4px 20px; background:#27ae60; color:white; border:1px solid #219653; font-weight:bold; cursor:pointer; font-size:11px;">View</button>
+                    <button onclick="closeInventoryLedgerModal()" style="padding:4px 20px; background:#e74c3c; color:white; border:1px solid #c0392b; font-weight:bold; cursor:pointer; font-size:11px;">Cancel</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ======================================================= -->
+    <!-- INVOICE SEARCH POPUP MODAL                              -->
+    <!-- ======================================================= -->
+    <div id="invoiceSearchModal" class="modal-overlay show" style="display:none;">
+        <div class="modal-content" style="max-width:700px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #ddd; padding-bottom: 8px; margin-bottom: 12px;">
+                <h3 style="margin: 0; font-size: 14px; color: #2c3e50;">📋 Search Invoices</h3>
+                <button onclick="closeInvoiceSearchPopup()" style="background: none; border: none; font-size: 18px; cursor: pointer; color: #e74c3c;">✕</button>
+            </div>
+            
+            <!-- Search Bar -->
+            <div style="display: flex; gap: 8px; margin-bottom: 12px; flex-wrap: wrap;">
+                <input type="text" id="invoiceSearchInput" placeholder="Search by Customer Code, Name, or Invoice #..." style="flex: 1; padding: 6px 10px; border: 2px solid #3498db; border-radius: 4px; font-size: 12px; min-width: 120px;">
+                <select id="invoiceTypeFilter" style="padding: 6px 10px; border: 1px solid #bdc3c7; border-radius: 4px; font-size: 11px; background: white;">
+                    <option value="all">📄 All</option>
+                    <option value="sale">💰 Sale</option>
+                    <option value="return">🔄 Return</option>
+                </select>
+                <button onclick="loadInvoiceSearchResults()" style="background: #2980b9; color: white; border: none; padding: 6px 16px; font-weight: bold; cursor: pointer; border-radius: 4px; font-size: 11px;">🔍 Search</button>
+            </div>
+            
+            <!-- Results Table -->
+            <div style="max-height: 350px; overflow-y: auto; border: 1px solid #ddd; border-radius: 4px;">
+                <table id="invoiceSearchTable" style="width: 100%; border-collapse: collapse; font-size: 11px;">
+                    <thead style="position: sticky; top: 0; background: #2e4053; color: white; z-index: 10;">
+                        <tr>
+                            <th style="padding: 6px;">Invoice #</th>
+                            <th style="padding: 6px;">Date</th>
+                            <th style="padding: 6px;">Type</th>
+                            <th style="padding: 6px; text-align:left;">Customer Title / Shop</th>
+                            <th style="padding: 6px; text-align:right;">Amount</th>
+                            <th style="padding: 6px;">Action</th>
+                        </tr>
+                    </thead>
+                    <tbody id="invoiceSearchResults">
+                        <tr><td colspan="6" style="text-align:center; padding:20px; color:#95a5a6;">Press Enter or click Search to load invoices</td></tr>
+                    </tbody>
+                </table>
+            </div>
+            
+            <!-- Footer -->
+            <div style="border-top: 1px solid #ddd; padding-top: 8px; margin-top: 8px; display: flex; justify-content: space-between; font-size: 10px; color: #95a5a6;">
+                <span>Total: <span id="invoiceSearchCount">0</span> invoices</span>
+                <span>Click any row to load invoice</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- ======================================================= -->
+    <!-- CUSTOMER SEARCH POPUP MODAL                              -->
+    <!-- ======================================================= -->
+    <div id="customerSearchModal" class="modal-overlay show" style="display:none;">
+        <div class="modal-content" style="max-width:500px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #ddd; padding-bottom: 8px; margin-bottom: 12px;">
+                <h3 style="margin: 0; font-size: 14px; color: #2c3e50;">🔍 Search Customer / Shop</h3>
+                <button onclick="closeCustomerSearchPopup()" style="background: none; border: none; font-size: 18px; cursor: pointer; color: #e74c3c;">✕</button>
+            </div>
+            
+            <!-- Search Bar -->
+            <div style="margin-bottom: 12px;">
+                <input type="text" id="customerSearchInput" placeholder="Type customer name or code to search..." 
+                       style="width: 100%; padding: 8px 12px; font-size: 13px; border: 2px solid #3498db; border-radius: 4px; box-sizing: border-box;">
+            </div>
+            
+            <!-- Results List -->
+            <div id="customerSearchResults" style="max-height: 300px; overflow-y: auto; border: 1px solid #ddd; border-radius: 4px; background: #f8f9fa;">
+                <div style="padding: 15px; text-align: center; color: #7f8c8d; font-size: 12px;">Start typing to search customers...</div>
+            </div>
+            
+            <!-- Footer -->
+            <div style="border-top: 1px solid #ddd; padding-top: 8px; margin-top: 8px; display: flex; justify-content: space-between; font-size: 10px; color: #95a5a6;">
+                <span>↑↓ Arrow keys to navigate</span>
+                <span>Enter to select</span>
+                <span>ESC to close</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- ======================================================= -->
+    <!-- CHANGE PASSWORD MODAL (Admin Only)                      -->
+    <!-- ======================================================= -->
+    <div id="changePasswordModal" class="modal-overlay show" style="display:none;">
+        <div class="modal-content" style="max-width:450px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #ddd; padding-bottom: 10px; margin-bottom: 15px;">
+                <h3 style="margin: 0; font-size: 16px; color: #2c3e50;">🔑 Change Username & Password</h3>
+                <button onclick="closeChangePasswordModal()" style="background: none; border: none; font-size: 20px; cursor: pointer; color: #e74c3c;">✕</button>
+            </div>
+            
+            <form id="changePasswordForm">
+                <!-- ✅ Username - Editable -->
+                <div class="form-group" style="margin-bottom: 15px;">
+                    <label style="font-weight: bold; color: #34495e; font-size: 12px;">👤 New Username</label>
+                    <input type="text" id="cpUsername" placeholder="Enter new username" style="width: 100%; padding: 8px; border: 1px solid #a6acaf; border-radius: 4px; font-size: 13px;">
+                </div>
+                
+                <div class="form-group" style="margin-bottom: 15px;">
+                    <label style="font-weight: bold; color: #34495e; font-size: 12px;">🔒 Current Password</label>
+                    <input type="password" id="cpCurrentPassword" placeholder="Enter current password" style="width: 100%; padding: 8px; border: 1px solid #a6acaf; border-radius: 4px; font-size: 13px;">
+                </div>
+                
+                <div class="form-group" style="margin-bottom: 15px;">
+                    <label style="font-weight: bold; color: #34495e; font-size: 12px;">🔑 New Password</label>
+                    <input type="password" id="cpNewPassword" placeholder="Enter new password (min 4 characters)" style="width: 100%; padding: 8px; border: 1px solid #a6acaf; border-radius: 4px; font-size: 13px;">
+                </div>
+                
+                <div class="form-group" style="margin-bottom: 15px;">
+                    <label style="font-weight: bold; color: #34495e; font-size: 12px;">✅ Confirm New Password</label>
+                    <input type="password" id="cpConfirmPassword" placeholder="Confirm new password" style="width: 100%; padding: 8px; border: 1px solid #a6acaf; border-radius: 4px; font-size: 13px;">
+                </div>
+                
+                <div id="cpError" style="color: #e74c3c; font-size: 12px; margin-bottom: 10px; display: none;"></div>
+                <div id="cpSuccess" style="color: #27ae60; font-size: 12px; margin-bottom: 10px; display: none;">✅ Changes saved successfully!</div>
+                
+                <div style="display: flex; gap: 10px; justify-content: flex-end; border-top: 1px solid #ddd; padding-top: 12px;">
+                    <button type="submit" style="padding: 8px 25px; background: #2980b9; color: white; border: none; border-radius: 4px; font-weight: bold; cursor: pointer; font-size: 12px;">💾 Update</button>
+                    <button type="button" onclick="closeChangePasswordModal()" style="padding: 8px 25px; background: #95a5a6; color: white; border: none; border-radius: 4px; font-weight: bold; cursor: pointer; font-size: 12px;">Cancel</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>
