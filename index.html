@@ -1119,8 +1119,12 @@
         <!-- Theme Toggle Button -->
         <a class="nav-item btn-theme" onclick="toggleTheme()" style="cursor: pointer; padding: 2px 8px; background: #6c7a89; border-radius: 3px; color: white; font-size: 9px;">🌙 Theme</a>
         
-        <!-- ✅ User Info & Logout -->
+        <!-- ✅ User Info, Logout, Backup, Restore -->
         <div style="display: flex; align-items: center; gap: 6px; margin-left: auto; flex-wrap: wrap;">
+            <!-- ✅ Backup & Restore Buttons -->
+            <button class="btn-panel btn-backup" onclick="backupLocalData()" style="background: #6c7a89; color: white; border: none; padding: 2px 8px; border-radius: 3px; font-size: 9px; cursor: pointer; font-weight: bold;">💾 Backup</button>
+            <button class="btn-panel btn-restore admin-only" onclick="restoreLocalData()" style="background: #8e44ad; color: white; border: none; padding: 2px 8px; border-radius: 3px; font-size: 9px; cursor: pointer; font-weight: bold; display: none;">📂 Restore</button>
+            
             <span style="color: #bdc3c7; font-size: 10px;">👤 <span id="userDisplayName">User</span></span>
             <span id="userRoleBadge" style="font-size: 8px; padding: 2px 8px; border-radius: 10px; background: #27ae60; color: white;"></span>
             <a class="nav-item" onclick="logoutUser()" style="cursor: pointer; padding: 2px 8px; background: #e74c3c; color: white; border-radius: 3px; font-size: 9px;">🚪 Logout</a>
